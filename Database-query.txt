@@ -20,6 +20,7 @@ CREATE TABLE Accounts (
     FullName VARCHAR(100) DEFAULT NULL, -- Thêm tên hiển thị (cho phép để trống lúc đầu)
     RoleID INT NOT NULL DEFAULT 2,      -- Mặc định là 2 (Guest) nếu code quên truyền vào
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Tự động lưu thời gian tạo
+    IsDeleted TINYINT DEFAULT 0,
     FOREIGN KEY (RoleID) REFERENCES Roles(RoleID)
 );
 
@@ -27,7 +28,8 @@ CREATE TABLE Accounts (
 CREATE TABLE Categories (
     CategoryID INT AUTO_INCREMENT PRIMARY KEY,
     CategoryName VARCHAR(100) NOT NULL,
-    Description TEXT
+    Description TEXT,
+    IsDeleted TINYINT DEFAULT 0
 );
 
 -- 4. Tạo bảng Phòng (Lưu thông tin từng phòng)
@@ -40,6 +42,7 @@ CREATE TABLE Rooms (
     Description TEXT,               -- Mô tả chi tiết
     ImageURL VARCHAR(500),          -- Link ảnh
     Address VARCHAR(255),	    -- Địa chỉ
+    IsDeleted TINYINT DEFAULT 0,
     FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID) ON DELETE SET NULL
 );
 
