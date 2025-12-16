@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết Quả Tìm Kiếm - Booking Hotel</title>
+    <link rel="stylesheet" href="style-home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* CSS riêng cho trang kết quả: Đẩy thanh tìm kiếm xuống vì không có Banner */
+        .search-container {
+            margin-top: 30px; 
+            margin-bottom: 30px;
+        }
+        /* Ẩn bớt margin thừa của container */
+        .container {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="navbar">
+            <a href="index.html" class="logo">Booking Hotel</a>
+            <div class="auth-buttons" id="auth-section"></div>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <div class="search-bar">
+            
+            <div class="search-item location-wrap" id="location-picker">
+                <i class="fas fa-bed"></i> 
+                <input type="text" id="search-location" placeholder="Bạn muốn đến đâu?">
+                <div id="location-dropdown" class="search-floating-menu location-dropdown">
+                    <ul id="city-list"></ul>
+                </div>
+            </div>
+            
+            <div class="search-item date-item">
+                <i class="fas fa-calendar-alt"></i>
+                <div class="date-input-wrapper">
+                    <label for="checkin-date" class="date-label">Nhận phòng</label>
+                    <input type="date" id="checkin-date" required>
+                </div>
+            </div>
+
+            <div class="search-item date-item">
+                <i class="fas fa-calendar-alt"></i>
+                <div class="date-input-wrapper">
+                    <label for="checkout-date" class="date-label">Trả phòng</label>
+                    <input type="date" id="checkout-date" required>
+                </div>
+            </div>
+            
+            <button class="btn-search" onclick="searchRooms()">Tìm kiếm</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="section-title" id="search-title">Kết quả tìm kiếm</h2>
+        <div class="room-grid" id="room-list">
+            <p style="text-align:center; width:100%;">Đang tìm kiếm...</p>
+        </div>
+    </div>
+
+    <div id="viewReviewsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-box" style="width: 600px; text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                <h3 style="margin:0; color:#003580;">Đánh giá từ khách hàng</h3>
+                <button onclick="closeReviewModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#666;">&times;</button>
+            </div>
+
+            <div id="reviews-list-container" style="overflow-y: auto; padding-right:5px; flex: 1;">
+                <p style="text-align:center">Đang tải...</p>
+            </div>
+            
+            <div style="text-align:right; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                <button onclick="closeReviewModal()" style="padding:8px 20px; background:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>

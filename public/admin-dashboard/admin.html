@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Trị Khách Sạn</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>Hotel Admin</h3>
+            <button id="menu-toggle" class="btn-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active" data-target="section-accounts">
+                <a href="#"><i class="fas fa-users"></i> Quản lý Tài khoản</a>
+            </li>
+            <li class="menu-item" data-target="section-rooms">
+                <a href="#"><i class="fas fa-bed"></i> Quản lý Phòng</a>
+            </li>
+            <li class="menu-item" data-target="section-categories">
+                <a href="#"><i class="fas fa-list"></i> Quản lý Danh mục</a>
+            </li>
+            <li class="menu-item" data-target="section-bookings">
+            <a href="#"><i class="fas fa-calendar-check"></i> Quản lý Đặt phòng</a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <button id="logout-btn"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h2 id="section-title">Quản lý Tài khoản</h2>
+            <div class="user-info">
+                <span>Xin chào, <b id="admin-name">Admin</b></span>
+            </div>
+        </header>
+
+        <main>
+            <section id="section-accounts" class="content-section active-section">
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="btn-add-account">+ Thêm Tài khoản</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên đăng nhập</th>
+                                <th>Email</th>
+                                <th>Vai trò</th>
+                                <th>Ngày tạo</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="account-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="section-rooms" class="content-section">
+                <div class="section-actions">
+                    <button class="btn btn-primary" id="btn-add-room">+ Thêm Phòng mới</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Hình ảnh</th>
+                                <th>Tên Phòng</th>
+                                <th>Danh mục</th>
+                                <th>Giá / Đêm</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="room-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="section-categories" class="content-section">
+                 <div class="section-actions">
+                    <button class="btn btn-primary" id="btn-add-category">+ Thêm Danh mục</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên Danh mục</th>
+                                <th>Mô tả</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="category-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="section-bookings" class="content-section">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Khách hàng</th>
+                                <th>Phòng</th>
+                                <th>Ngày Check-in</th>
+                                <th>Ngày Check-out</th>
+                                <th>Tổng tiền (Dự kiến)</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="booking-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal-account" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Thông tin Tài khoản</h3>
+            <form id="account-form">
+                <input type="hidden" id="acc-id"> <div class="form-group">
+                    <label>Tên đăng nhập:</label>
+                    <input type="text" id="acc-username" required placeholder="Ví dụ: admin">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="acc-email" required placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu (Để trống nếu không đổi):</label>
+                    <input type="password" id="acc-password">
+                </div>
+                 <div class="form-group">
+                    <label>Vai trò:</label>
+                    <select id="acc-role">
+                        <option value="2">Khách hàng</option>
+                        <option value="1">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Lưu lại</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-room" class="modal">
+        <div class="modal-content modal-lg">
+            <span class="close-modal">&times;</span>
+            <h3>Thông tin Phòng</h3>
+             <form id="room-form">
+                <input type="hidden" id="room-id">
+                
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label>Tên phòng:</label>
+                        <input type="text" id="room-name" required placeholder="P.101">
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Địa chỉ / Khu vực:</label>
+                        <input type="text" id="room-address" list="city-list" placeholder="Nhập tên thành phố (Vd: Hà Nội)..." autocomplete="off">
+                        
+                        <datalist id="city-list"></datalist>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                     <div class="form-group col-md-6">
+                        <label>Danh mục:</label>
+                        <select id="room-category" required></select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Giá phòng (VNĐ):</label>
+                        <input type="number" id="room-price" required>
+                    </div>
+                </div>
+                 
+                <div class="form-row">
+                     <div class="form-group col-md-6">
+                        <label>Trạng thái:</label>
+                        <select id="room-status">
+                            <option value="available">Còn trống</option>
+                            <option value="maintenance">Bảo trì</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Link Ảnh (URL):</label>
+                        <input type="text" id="room-image" placeholder="https://...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Mô tả chi tiết:</label>
+                    <textarea id="room-description" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Lưu Phòng</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-category" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Thông tin Danh mục</h3>
+            <form id="category-form">
+                <input type="hidden" id="cat-id"> <div class="form-group">
+                    <label>Tên Danh mục:</label>
+                    <input type="text" id="cat-name" required placeholder="Ví dụ: VIP">
+                </div>
+                <div class="form-group">
+                    <label>Mô tả:</label>
+                    <textarea id="cat-desc" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Lưu Danh mục</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
