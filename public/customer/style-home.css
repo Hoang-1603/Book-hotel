@@ -565,3 +565,137 @@ header {
     padding-right: 5px;
     margin-top: 15px;
 }
+
+/* ================= FOOTER STYLES ================= */
+.site-footer {
+    background-color: #003580; /* Màu xanh đậm thương hiệu Booking */
+    color: #ffffff;
+    padding-top: 60px;
+    margin-top: 50px; /* Cách phần nội dung bên trên */
+    font-size: 14px;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.footer-col {
+    flex: 1;
+    min-width: 250px;
+    margin-bottom: 30px;
+}
+
+.footer-col h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.footer-col h4 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+/* Gạch chân dưới tiêu đề */
+.footer-col h4::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 50px;
+    height: 2px;
+    background-color: #febb02; /* Màu vàng điểm nhấn */
+}
+
+.footer-col p {
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+.footer-col ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-col ul li {
+    margin-bottom: 10px;
+}
+
+.footer-col ul li a {
+    color: #e0e0e0;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.footer-col ul li a:hover {
+    color: #febb02;
+    padding-left: 5px; /* Hiệu ứng đẩy chữ sang phải */
+}
+
+/* Social Icons */
+.social-links {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.social-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.social-links a:hover {
+    background: #febb02;
+    color: #003580;
+    transform: translateY(-3px);
+}
+
+/* Contact Icons */
+.contact-info i {
+    margin-right: 10px;
+    color: #febb02;
+    width: 20px;
+    text-align: center;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+    background-color: #00224f; /* Màu đậm hơn chút */
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.footer-bottom p {
+    margin: 0;
+    color: #aaa;
+    font-size: 13px;
+}
+
+/* Responsive cho Mobile */
+@media (max-width: 768px) {
+    .footer-container {
+        flex-direction: column;
+    }
+    .footer-col {
+        margin-bottom: 20px;
+    }
+}
