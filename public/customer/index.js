@@ -193,8 +193,8 @@ function checkLoginStatus() {
     } else {
         // Chưa đăng nhập (Sửa đường dẫn phù hợp với thư mục của bạn)
         authSection.innerHTML = `
-            <a href="/public/auth/register.html" class="btn-register">Đăng ký</a>
-            <a href="/public/auth/login.html" class="btn-login">Đăng nhập</a>
+            <a href="../auth/register.html" class="btn-register">Đăng ký</a>
+            <a href="../auth/login.html" class="btn-login">Đăng nhập</a>
         `;
     }
 }
