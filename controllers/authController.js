@@ -43,7 +43,7 @@ exports.register = (req, res) => {
     });
 };
 
-// Quên mật khẩu - Gửi email reset password
+// Quên mật khẩu - Gửi email reset password (link)
 exports.forgotPassword = (req, res) => {
     const { email } = req.body;
     
@@ -77,7 +77,7 @@ exports.forgotPassword = (req, res) => {
                 if (err) return res.status(500).json({ error: "Lỗi lưu token" });
 
                 try {
-                    // Gửi email reset password
+                    // Gửi email reset password chứa link
                     await emailService.sendPasswordResetEmail(email, resetToken);
                     res.json({ message: "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu." });
                 } catch (emailError) {

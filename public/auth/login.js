@@ -37,9 +37,9 @@ document.querySelector('.login-form').addEventListener('submit', async function(
 
             // Chuyển hướng dựa trên Role (1: Admin, 2: Guest)
             if (data.role === 1) {
-                window.location.href = '/public/admin-dashboard/admin.html'; // Sửa đường dẫn trang Admin của bạn
+                window.location.href = '../admin-dashboard/admin.html'; // Sửa đường dẫn trang Admin của bạn
             } else {
-                window.location.href = '/public/customer/index.html'; // Sửa đường dẫn trang chủ Khách
+                window.location.href = '../customer/index.html'; // Sửa đường dẫn trang chủ Khách
             }
         } else {
             // -- Thất bại --
