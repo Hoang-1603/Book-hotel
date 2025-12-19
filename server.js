@@ -7,6 +7,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 require('./config/db'); 
+const emailService = require('./services/emailService');
 
 const app = express();
 
@@ -54,6 +55,29 @@ app.use('/api/admin/users', userRoutes);
 // API Quản lý Danh mục (Dành cho Admin)
 // Đường dẫn: /api/admin/categories
 app.use('/api/admin/categories', categoryRoutes);
+
+// API gửi email tùy chỉnh
+// Body: { userEmail, emailSubject, emailBody }
+app.post('/api/sendmail', async (req, res) => {
+    try {
+        const { userEmail, emailSubject, emailBody } = req.body;
+
+        if (!userEmail || !emailSubject || !emailBody) {
+            return res.status(400).json({ error: 'Thiếu thông tin: userEmail, emailSubject, emailBody' });
+        }
+
+        const result = await emailService.sendCustomEmail(userEmail, emailSubject, emailBody);
+
+        if (!result.success) {
+            return res.status(500).json({ error: result.error || 'Gửi email thất bại' });
+        }
+
+        res.json({ message: 'Gửi email thành công', messageId: result.messageId });
+    } catch (error) {
+        console.error('❌ Lỗi API /api/sendmail:', error);
+        res.status(500).json({ error: 'Lỗi server khi gửi email' });
+    }
+});
 
 /* =========================================
    4. KHỞI CHẠY SERVER
