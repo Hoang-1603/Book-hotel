@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Đăng xuất
     document.getElementById("logout-btn").onclick = () => {
         localStorage.clear();
-        window.location.href = "/public/auth/login.html";
+        window.location.href = "../auth/login.html";
     };
 });
 
