@@ -3,9 +3,13 @@ const bcrypt = require('bcryptjs');
 
 // 1. Lấy danh sách user
 exports.getAllUsers = (req, res) => {
-    const sql = "SELECT AccountID, Username, Email, RoleID, CreatedAt FROM Accounts WHERE IsDeleted = 0";
+    const sql = "SELECT AccountID, Username, Email, RoleID, CreatedAt, IFNULL(IsDeleted, 0) AS IsDeleted FROM Accounts WHERE IsDeleted = 0 OR IsDeleted IS NULL";
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: "Lỗi lấy dữ liệu" });
+        if (err) {
+            console.error('❌ Lỗi lấy danh sách user:', err);
+            return res.status(500).json({ error: "Lỗi lấy dữ liệu: " + (err.sqlMessage || err.message) });
+        }
+        console.log('✅ getAllUsers - tổng số bản ghi trả về:', results.length);
         res.json(results);
     });
 };

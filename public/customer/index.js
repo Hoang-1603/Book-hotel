@@ -96,18 +96,12 @@ function showMap(name, lat, lng) {
     setTimeout(() => { myMap.invalidateSize(); }, 200);
 }
 
-// Hàm đóng map khi bấm nút X hoặc bấm ra ngoài
-window.onclick = function(event) {
-    const mapModal = document.getElementById('map-modal');
-    const reviewModal = document.getElementById('viewReviewsModal');
-    
-    if (event.target == mapModal) {
-        mapModal.style.display = "none";
-    }
-    if (event.target == reviewModal) {
-        closeReviewModal();
-    }
-}
+// Biến toàn cục: mảng các danh mục đang chọn (cho trang search-results)
+let selectedCategoryIds = [];
+// Biến toàn cục: mảng các mức điểm đánh giá đang chọn (ví dụ: [9, 8, 7] = lọc phòng có điểm >= 7)
+let selectedRatingFilters = [];
+// Biến toàn cục: lưu tất cả phòng để filter client-side
+let allRooms = [];
 
 // --- 3. KHỞI TẠO KHI TRANG LOAD ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -220,8 +214,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Cập nhật tiêu đề
         if(loc) document.getElementById('search-title').innerText = `Chỗ nghỉ tại: ${loc}`;
 
-        // Gọi API tải phòng ngay lập tức
-        loadRooms(loc, checkIn, checkOut);
+        // Tải danh mục filter và sau đó tải phòng
+        loadCategoriesFilters().then(() => {
+            loadRooms(loc, checkIn, checkOut);
+        }).catch(() => {
+            // Nếu lỗi khi tải danh mục vẫn tải phòng bình thường
+            loadRooms(loc, checkIn, checkOut);
+        });
     } else {
         // --- NẾU LÀ TRANG CHỦ ---
         // Chỉ khởi tạo ngày mặc định, không tải phòng (vì trang chủ chỉ hiện điểm đến)
@@ -264,95 +263,47 @@ function checkLoginStatus() {
 async function loadRooms(location = '', checkIn = '', checkOut = '') {
     try {
         let url = `http://localhost:3000/api/rooms?t=${new Date().getTime()}`;
-        if(location) url += `&location=${encodeURIComponent(location)}`;
-        if(checkIn) url += `&checkIn=${encodeURIComponent(checkIn)}`;
-        if(checkOut) url += `&checkOut=${encodeURIComponent(checkOut)}`;
+        if (location) url += `&location=${encodeURIComponent(location)}`;
+        if (checkIn) url += `&checkIn=${encodeURIComponent(checkIn)}`;
+        if (checkOut) url += `&checkOut=${encodeURIComponent(checkOut)}`;
 
         const res = await fetch(url);
         const rooms = await res.json();
         const container = document.getElementById('room-list');
 
-        if(!container) return;
+        if (!container) return;
 
-        if(rooms.length === 0) {
+        // Lưu tất cả phòng để filter client-side
+        allRooms = rooms;
+
+        // Áp dụng filter theo category nếu có
+        let filteredRooms = rooms;
+        if (selectedCategoryIds.length > 0) {
+            filteredRooms = rooms.filter(room => {
+                return selectedCategoryIds.includes(room.CategoryID.toString());
+            });
+        }
+
+        // Áp dụng filter theo rating nếu có
+        if (selectedRatingFilters.length > 0) {
+            const minRating = Math.min(...selectedRatingFilters);
+            filteredRooms = filteredRooms.filter(room => {
+                const avgRating = parseFloat(room.AvgRating || 0);
+                return avgRating >= minRating;
+            });
+        }
+
+        if (filteredRooms.length === 0) {
             container.innerHTML = '<p style="text-align:center; width:100%; padding:20px">Không tìm thấy phòng phù hợp.</p>';
+            // Cập nhật rating filters với dữ liệu mới
+            updateRatingFilters(rooms);
             return;
         }
 
-        container.innerHTML = rooms.map(room => {
-            const price = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.Price);
-            const img = room.ImageURL || 'https://via.placeholder.com/300x200';
-            
-            // --- LOGIC MAP BUTTON (MỚI THÊM) ---
-            const lat = parseFloat(room.Latitude);
-            const lng = parseFloat(room.Longitude);
-            let mapButtonHtml = '';
-            
-            // Kiểm tra nếu toạ độ hợp lệ thì tạo nút bấm
-            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                // Sử dụng inline style để đảm bảo nút hiển thị đúng mà không cần sửa nhiều file CSS
-                mapButtonHtml = `
-                    <button class="btn-map-small" 
-                            style="border:none; background:none; color:#007bff; font-weight:bold; text-decoration:underline; cursor:pointer; margin-left:10px; padding:0;"
-                            onclick="showMap('${room.RoomName.replace(/'/g, "\\'")}', ${lat}, ${lng})">
-                        Xem trên bản đồ
-                    </button>
-                `;
-            }
-
-            const addressHtml = room.Address 
-                ? `<div class="room-location" style="display:flex; align-items:center; font-size:13px; color:#666; margin:5px 0;">
-                        <i class="fas fa-map-marker-alt" style="margin-right:5px; color:#007bff;"></i>
-                        <span>${room.Address}</span>
-                        ${mapButtonHtml} </div>` 
-                : '';
-            // ------------------------------------
-            
-            // --- LOGIC REVIEW ---
-            const ratingVal = parseFloat(room.AvgRating || 0);
-            const count = room.ReviewCount;
-            let reviewHtml = '';
-            
-            if (count > 0) {
-                let label = 'Trung bình';
-                if (ratingVal >= 9.5) label = 'Trên cả tuyệt vời';
-                else if (ratingVal >= 9.0) label = 'Xuất sắc';
-                else if (ratingVal >= 8.0) label = 'Tuyệt vời';
-                else if (ratingVal >= 7.0) label = 'Tốt';
-                else if (ratingVal >= 5.0) label = 'Hài lòng';
-
-                reviewHtml = `
-                    <div class="review-summary" style="cursor:pointer" onclick="viewRoomReviews(${room.RoomID})" title="Bấm để xem các bình luận">
-                        <div class="review-score-box">${ratingVal.toFixed(1)}</div>
-                        <div class="review-details">
-                            <span class="review-label">${label}</span>
-                            <span class="review-count-text">${count} đánh giá - Xem chi tiết</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                reviewHtml = `<div class="review-summary" style="opacity:0.6"><span class="review-count-text" style="font-style:italic">Chưa có đánh giá</span></div>`;
-            }
-
-            return `
-                <div class="room-card">
-                    <img src="${img}" class="room-img">
-                    <div class="room-info">
-                        <div class="room-cat" style="font-size:12px; font-weight:bold; color:#0071c2;">${room.CategoryName || 'STANDARD'}</div>
-                        <div class="room-name" style="font-size:18px; font-weight:bold; margin:5px 0">${room.RoomName}</div>
-                        
-                        ${addressHtml}
-
-                        <div class="room-desc" style="font-size:14px; color:#555;">${room.Description || ''}</div>
-                        ${reviewHtml}
-                        <div class="room-price" style="font-size:20px; color:#d4111e; font-weight:bold; text-align:right;">${price}</div>
-                        <div style="margin-top:auto;">
-                            <button class="btn-book" onclick="handleBooking(${room.RoomID})">Đặt Ngay</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        renderRooms(filteredRooms);
+        
+        // Cập nhật rating filters với dữ liệu mới
+        updateRatingFilters(rooms);
     } catch (err) { 
         console.error(err); 
     }
@@ -410,8 +361,16 @@ function closeReviewModal() {
 }
 
 // Đóng khi bấm ra vùng tối bên ngoài
-window.onclick = function(e) {
-    if (e.target == reviewModal) closeReviewModal();
+window.onclick = function(event) {
+    const mapModal = document.getElementById('map-modal');
+    const reviewModal = document.getElementById('viewReviewsModal');
+    
+    if (event.target == mapModal) {
+        mapModal.style.display = "none";
+    }
+    if (event.target == reviewModal) {
+        closeReviewModal();
+    }
 }
 
 // Xử lý sự kiện bấm nút "Tìm kiếm"
@@ -439,6 +398,241 @@ function searchRooms() {
         window.location.href = `search-results.html?location=${encodeURIComponent(loc)}&checkIn=${inDate}&checkOut=${outDate}`;
     }
 }
+
+// --- LỌC THEO DANH MỤC (TRANG SEARCH-RESULTS) ---
+
+async function loadCategoriesFilters() {
+    const container = document.getElementById('category-filters');
+    if (!container) return; // Không phải trang search-results
+
+    try {
+        const res = await fetch('http://localhost:3000/api/categories');
+        if (!res.ok) {
+            throw new Error('Không tải được danh mục');
+        }
+        const categories = await res.json();
+
+        if (!Array.isArray(categories) || categories.length === 0) {
+            container.innerHTML = '<p style="font-size: 13px; color:#666;">Chưa có danh mục phòng.</p>';
+            return;
+        }
+
+        let html = '';
+
+        categories.forEach(cat => {
+            const isChecked = selectedCategoryIds.includes(cat.CategoryID.toString());
+            html += `
+                <div class="filter-category-item">
+                    <label>
+                        <input type="checkbox" 
+                               name="categoryFilter" 
+                               id="cat-${cat.CategoryID}" 
+                               value="${cat.CategoryID}"
+                               ${isChecked ? 'checked' : ''}
+                               onchange="handleCategoryFilterChange()">
+                        <span>${cat.CategoryName}</span>
+                    </label>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error('Lỗi tải danh mục:', err);
+        if (container) {
+            container.innerHTML = '<p style="font-size: 13px; color:red;">Không tải được danh mục.</p>';
+        }
+    }
+}
+
+// Hàm xử lý khi thay đổi category filter
+function handleCategoryFilterChange() {
+    const checkboxes = document.querySelectorAll('input[name="categoryFilter"]:checked');
+    selectedCategoryIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Lọc lại danh sách phòng
+    applyFilters();
+}
+
+// Hàm áp dụng tất cả filters (category + rating)
+function applyFilters() {
+    const container = document.getElementById('room-list');
+    if (!container || allRooms.length === 0) return;
+    
+    let filteredRooms = allRooms;
+    
+    // Filter theo category
+    if (selectedCategoryIds.length > 0) {
+        filteredRooms = filteredRooms.filter(room => {
+            return selectedCategoryIds.includes(room.CategoryID.toString());
+        });
+    }
+    
+    // Filter theo rating
+    if (selectedRatingFilters.length > 0) {
+        const minRating = Math.min(...selectedRatingFilters);
+        filteredRooms = filteredRooms.filter(room => {
+            const avgRating = parseFloat(room.AvgRating || 0);
+            return avgRating >= minRating;
+        });
+    }
+    
+    if (filteredRooms.length === 0) {
+        container.innerHTML = '<p style="text-align:center; width:100%; padding:20px">Không tìm thấy phòng phù hợp.</p>';
+        return;
+    }
+    
+    // Render lại danh sách phòng đã lọc
+    renderRooms(filteredRooms);
+}
+
+// Hàm render danh sách phòng (tách riêng để tái sử dụng)
+function renderRooms(rooms) {
+    const container = document.getElementById('room-list');
+    if (!container) return;
+    
+    container.innerHTML = rooms.map(room => {
+        const price = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.Price);
+        const img = room.ImageURL || 'https://via.placeholder.com/300x200';
+        
+        // --- LOGIC MAP BUTTON ---
+        const lat = parseFloat(room.Latitude);
+        const lng = parseFloat(room.Longitude);
+        let mapButtonHtml = '';
+        
+        // Kiểm tra nếu toạ độ hợp lệ thì tạo nút bấm
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+            // Sử dụng inline style để đảm bảo nút hiển thị đúng mà không cần sửa nhiều file CSS
+            mapButtonHtml = `
+                <button class="btn-map-small" 
+                        style="border:none; background:none; color:#007bff; font-weight:bold; text-decoration:underline; cursor:pointer; margin-left:10px; padding:0;"
+                        onclick="showMap('${room.RoomName.replace(/'/g, "\\'")}', ${lat}, ${lng})">
+                    Xem trên bản đồ
+                </button>
+            `;
+        }
+
+        const addressHtml = room.Address 
+            ? `<div class="room-location" style="display:flex; align-items:center; font-size:13px; color:#666; margin:5px 0;">
+                    <i class="fas fa-map-marker-alt" style="margin-right:5px; color:#007bff;"></i>
+                    <span>${room.Address}</span>
+                    ${mapButtonHtml} </div>` 
+            : '';
+        
+        const ratingVal = parseFloat(room.AvgRating || 0);
+        const count = room.ReviewCount;
+        
+        let reviewHtml = '';
+        
+        if (count > 0) {
+            let label = 'Trung bình';
+            if (ratingVal >= 9.5) label = 'Trên cả tuyệt vời';
+            else if (ratingVal >= 9.0) label = 'Xuất sắc';
+            else if (ratingVal >= 8.0) label = 'Tuyệt vời';
+            else if (ratingVal >= 7.0) label = 'Tốt';
+            else if (ratingVal >= 5.0) label = 'Hài lòng';
+
+            reviewHtml = `
+                <div class="review-summary" style="cursor:pointer" onclick="viewRoomReviews(${room.RoomID})" title="Bấm để xem các bình luận">
+                    <div class="review-score-box">${ratingVal.toFixed(1)}</div>
+                    <div class="review-details">
+                        <span class="review-label">${label}</span>
+                        <span class="review-count-text">${count} đánh giá - Xem chi tiết</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            reviewHtml = `<div class="review-summary" style="opacity:0.6"><span class="review-count-text" style="font-style:italic">Chưa có đánh giá</span></div>`;
+        }
+
+        return `
+            <div class="room-card">
+                <img src="${img}" class="room-img">
+                <div class="room-info">
+                    <div class="room-cat" style="font-size:12px; font-weight:bold; color:#0071c2;">${room.CategoryName || 'STANDARD'}</div>
+                    <div class="room-name" style="font-size:18px; font-weight:bold; margin:5px 0">${room.RoomName}</div>
+                    ${addressHtml}
+                    <div class="room-desc" style="font-size:14px; color:#555;">${room.Description || ''}</div>
+                    
+                    ${reviewHtml}
+                    
+                    <div class="room-price" style="font-size:20px; color:#d4111e; font-weight:bold; text-align:right;">${price}</div>
+                    <div style="margin-top:auto;">
+                        <button class="btn-book" onclick="handleBooking(${room.RoomID})">Đặt Ngay</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// --- LỌC THEO ĐIỂM ĐÁNH GIÁ (TRANG SEARCH-RESULTS) ---
+
+// Hàm đếm số lượng phòng theo từng mức điểm
+function countRoomsByRating(rooms) {
+    const counts = {
+        9: 0, // Superb: 9+
+        8: 0, // Very good: 8+
+        7: 0, // Good: 7+
+        6: 0  // Pleasant: 6+
+    };
+    
+    rooms.forEach(room => {
+        const avgRating = parseFloat(room.AvgRating || 0);
+        if (avgRating >= 9) counts[9]++;
+        if (avgRating >= 8) counts[8]++;
+        if (avgRating >= 7) counts[7]++;
+        if (avgRating >= 6) counts[6]++;
+    });
+    
+    return counts;
+}
+
+// Hàm cập nhật UI rating filters
+function updateRatingFilters(rooms) {
+    const container = document.getElementById('rating-filters');
+    if (!container) return;
+    
+    const counts = countRoomsByRating(rooms);
+    
+    const ratingOptions = [
+        { min: 9, label: 'Đỉnh của chóp', count: counts[9] },
+        { min: 8, label: 'Tốt', count: counts[8] },
+        { min: 7, label: 'Khá', count: counts[7] },
+        { min: 6, label: 'Trung bình', count: counts[6] }
+    ];
+    
+    let html = '';
+    ratingOptions.forEach(option => {
+        const isChecked = selectedRatingFilters.includes(option.min);
+        html += `
+            <div class="rating-filter-item">
+                <label>
+                    <input type="checkbox" 
+                           name="ratingFilter" 
+                           value="${option.min}" 
+                           ${isChecked ? 'checked' : ''}
+                           onchange="handleRatingFilterChange()">
+                    <span>${option.label}: ${option.min}+</span>
+                </label>
+                <span class="rating-count">${option.count}</span>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Hàm xử lý khi thay đổi rating filter
+function handleRatingFilterChange() {
+    const checkboxes = document.querySelectorAll('input[name="ratingFilter"]:checked');
+    selectedRatingFilters = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    // Lọc lại danh sách phòng
+    applyFilters();
+}
+
 
 // Xử lý Đặt phòng
 async function handleBooking(roomId) {
