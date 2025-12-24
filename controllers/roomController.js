@@ -34,6 +34,7 @@ exports.searchRooms = (req, res) => {
 
 // --- ADMIN: CRUD ---
 exports.getAllRoomsAdmin = (req, res) => {
+    // Lấy hết thông tin (bao gồm cả Lat/Lng vì dùng Rooms.*)
     const sql = `
         SELECT Rooms.*, Categories.CategoryName 
         FROM Rooms 
@@ -47,19 +48,44 @@ exports.getAllRoomsAdmin = (req, res) => {
 };
 
 exports.createRoom = (req, res) => {
-    const { name, category_id, price, status, description, image, address } = req.body;
-    db.query(`INSERT INTO Rooms (RoomName, CategoryID, Price, Status, Description, ImageURL, Address) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-    [name, category_id, price, status, description, image, address], (err) => {
-        if(err) return res.status(500).json({ error: "Lỗi thêm phòng" });
+    // 1. Lấy thêm lat, lng từ req.body gửi lên
+    const { name, category_id, price, status, description, image, address, lat, lng } = req.body;
+
+    const latVal = (lat && lat !== "") ? lat : null;
+    const lngVal = (lng && lng !== "") ? lng : null;
+
+    // 2. Cập nhật câu lệnh SQL Insert
+    const sql = `INSERT INTO Rooms (RoomName, CategoryID, Price, Status, Description, ImageURL, Address, Latitude, Longitude) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    db.query(sql, 
+    [name, category_id, price, status, description, image, address, lat, lng], (err) => {
+        if(err) {
+            console.error("Lỗi SQL:", err); // Log lỗi ra terminal để dễ sửa
+            return res.status(500).json({ error: "Lỗi thêm phòng" });
+        }
         res.json({ message: "Thêm thành công!" });
     });
 };
 
 exports.updateRoom = (req, res) => {
-    const { name, category_id, price, status, description, image, address } = req.body;
-    db.query("UPDATE Rooms SET RoomName=?, CategoryID=?, Price=?, Status=?, Description=?, ImageURL=?, Address=? WHERE RoomID=?", 
-    [name, category_id, price, status, description, image, address, req.params.id], (err) => {
-        if(err) return res.status(500).json({ error: "Lỗi update" });
+    // 1. Lấy thêm lat, lng từ req.body gửi lên
+    const { name, category_id, price, status, description, image, address, lat, lng } = req.body;
+
+    const latVal = (lat && lat !== "") ? lat : null;
+    const lngVal = (lng && lng !== "") ? lng : null;
+
+    // 2. Cập nhật câu lệnh SQL Update
+    const sql = `UPDATE Rooms 
+                 SET RoomName=?, CategoryID=?, Price=?, Status=?, Description=?, ImageURL=?, Address=?, Latitude=?, Longitude=? 
+                 WHERE RoomID=?`;
+
+    db.query(sql, 
+    [name, category_id, price, status, description, image, address, lat, lng, req.params.id], (err) => {
+        if(err) {
+            console.error("Lỗi SQL:", err);
+            return res.status(500).json({ error: "Lỗi update" });
+        }
         res.json({ message: "Cập nhật thành công!" });
     });
 };

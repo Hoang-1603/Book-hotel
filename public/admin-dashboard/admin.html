@@ -6,6 +6,8 @@
     <title>Hệ Thống Quản Trị Khách Sạn</title>
     <link rel="stylesheet" href="admin-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
     <div class="sidebar">
@@ -160,7 +162,7 @@
         <div class="modal-content modal-lg">
             <span class="close-modal">&times;</span>
             <h3>Thông tin Phòng</h3>
-             <form id="room-form">
+            <form id="room-form">
                 <input type="hidden" id="room-id">
                 
                 <div class="form-row">
@@ -171,13 +173,77 @@
                     <div class="form-group col-md-6">
                         <label>Địa chỉ / Khu vực:</label>
                         <input type="text" id="room-address" list="city-list" placeholder="Nhập tên thành phố (Vd: Hà Nội)..." autocomplete="off">
-                        
                         <datalist id="city-list"></datalist>
                     </div>
                 </div>
 
                 <div class="form-row">
-                     <div class="form-group col-md-6">
+                    <div class="form-group col-md-5">
+                        <label>Vĩ độ (Latitude):</label>
+                        <input type="number" step="any" id="room-lat" placeholder="VD: 10.7769">
+                    </div>
+                    <div class="form-group col-md-5">
+                        <label>Kinh độ (Longitude):</label>
+                        <input type="number" step="any" id="room-lng" placeholder="VD: 106.7009">
+                    </div>
+                    <div class="form-group col-md-2" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn btn-info" onclick="openMapPicker()" style="width: 100%; font-size: 13px;">
+                            <i class="fas fa-map-marked-alt"></i> Chọn Map
+                        </button>
+                    </div>
+                </div>
+
+                <div id="picker-map-modal" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+                    <div style="background:#fff; width:80%; height:80vh; border-radius:8px; display:flex; flex-direction:column; overflow:hidden;">
+                        <div style="padding:10px; background:#f1f1f1; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+                            <h4 style="margin:0">Click vào bản đồ để chọn vị trí</h4>
+                            <span onclick="document.getElementById('picker-map-modal').style.display='none'" style="font-size:25px; cursor:pointer;">&times;</span>
+                        </div>
+                        <div id="picker-map" style="flex:1;"></div>
+                    </div>
+                </div>
+                <style>
+                    /* Trang trí riêng cho nút Chọn Map */
+                    .btn-info {
+                        /* 1. Màu sắc nổi bật (Xanh ngọc đậm) */
+                        background: linear-gradient(135deg, #17a2b8, #138496) !important;
+                        color: white !important;
+                        
+                        /* 2. Kích thước & Căn chỉnh */
+                        height: 42px;          /* Cao bằng ô nhập liệu bên cạnh */
+                        width: 100%;           /* Rộng full ô chứa */
+                        border: none;
+                        border-radius: 6px;    /* Bo góc nhẹ */
+                        
+                        /* 3. Font chữ & Icon */
+                        font-weight: 600;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;              /* Khoảng cách giữa icon và chữ */
+                        
+                        /* 4. Hiệu ứng */
+                        cursor: pointer;
+                        box-shadow: 0 4px 6px rgba(23, 162, 184, 0.3); /* Đổ bóng xanh nhẹ */
+                        transition: all 0.3s ease;
+                    }
+
+                    /* Hiệu ứng khi di chuột vào */
+                    .btn-info:hover {
+                        background: linear-gradient(135deg, #138496, #117a8b) !important;
+                        transform: translateY(-2px); /* Nổi lên một chút */
+                        box-shadow: 0 6px 10px rgba(23, 162, 184, 0.4);
+                    }
+
+                    /* Hiệu ứng khi bấm xuống */
+                    .btn-info:active {
+                        transform: translateY(0);
+                        box-shadow: none;
+                    }
+                </style>
+                <div class="form-row">
+                    <div class="form-group col-md-6">
                         <label>Danh mục:</label>
                         <select id="room-category" required></select>
                     </div>
@@ -186,9 +252,9 @@
                         <input type="number" id="room-price" required>
                     </div>
                 </div>
-                 
+                
                 <div class="form-row">
-                     <div class="form-group col-md-6">
+                    <div class="form-group col-md-6">
                         <label>Trạng thái:</label>
                         <select id="room-status">
                             <option value="available">Còn trống</option>

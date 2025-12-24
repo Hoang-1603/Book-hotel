@@ -699,3 +699,19 @@ header {
         margin-bottom: 20px;
     }
 }
+
+.btn-map-small {
+    background: none;
+    border: none;
+    color: #007bff; /* Màu xanh Booking */
+    font-weight: bold;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 10px;
+    padding: 0;
+}
+
+.btn-map-small:hover {
+    color: #0056b3;
+}

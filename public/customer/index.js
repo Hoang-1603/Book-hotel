@@ -48,6 +48,67 @@ function formatDefaultDate(date) {
     return [year, month, day].join('-');
 }
 
+// LOGIC BẢN ĐỒ
+let myMap; // Biến lưu bản đồ toàn cục
+
+function showMap(name, lat, lng) {
+    // 1. Kiểm tra xem Modal có tồn tại trong HTML không
+    const modal = document.getElementById('map-modal');
+    if (!modal) {
+        alert("Lỗi: Thiếu HTML khung bản đồ (id='map-modal')");
+        return;
+    }
+
+    // 2. Hiện Modal
+    modal.style.display = 'flex';
+
+    // 3. Khởi tạo bản đồ nếu chưa có
+    // Kiểm tra biến L (Leaflet) có tồn tại không
+    if (typeof L === 'undefined') {
+        alert("Lỗi: Chưa tải thư viện Leaflet. Hãy kiểm tra lại thẻ <head>.");
+        return;
+    }
+
+    if (!myMap) {
+        myMap = L.map('popup-map');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(myMap);
+    }
+
+    // 4. Reset map và ghim vị trí mới
+    // Xóa marker cũ
+    myMap.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+            myMap.removeLayer(layer);
+        }
+    });
+
+    // Di chuyển map đến vị trí mới và thêm marker
+    if (lat && lng) {
+        myMap.setView([lat, lng], 16);
+        L.marker([lat, lng]).addTo(myMap)
+            .bindPopup(`<b>${name}</b>`)
+            .openPopup();
+    }
+
+    // Fix lỗi hiển thị map (quan trọng khi nằm trong modal ẩn)
+    setTimeout(() => { myMap.invalidateSize(); }, 200);
+}
+
+// Hàm đóng map khi bấm nút X hoặc bấm ra ngoài
+window.onclick = function(event) {
+    const mapModal = document.getElementById('map-modal');
+    const reviewModal = document.getElementById('viewReviewsModal');
+    
+    if (event.target == mapModal) {
+        mapModal.style.display = "none";
+    }
+    if (event.target == reviewModal) {
+        closeReviewModal();
+    }
+}
+
 // --- 3. KHỞI TẠO KHI TRANG LOAD ---
 document.addEventListener("DOMContentLoaded", () => {
     // Khởi tạo các trạng thái ban đầu
@@ -202,11 +263,10 @@ function checkLoginStatus() {
 // Hàm tải phòng từ Server
 async function loadRooms(location = '', checkIn = '', checkOut = '') {
     try {
-        // ... (Giữ nguyên phần gọi API) ...
         let url = `http://localhost:3000/api/rooms?t=${new Date().getTime()}`;
-        if(location) url += `&location=${location}`;
-        if(checkIn) url += `&checkIn=${checkIn}`;
-        if(checkOut) url += `&checkOut=${checkOut}`;
+        if(location) url += `&location=${encodeURIComponent(location)}`;
+        if(checkIn) url += `&checkIn=${encodeURIComponent(checkIn)}`;
+        if(checkOut) url += `&checkOut=${encodeURIComponent(checkOut)}`;
 
         const res = await fetch(url);
         const rooms = await res.json();
@@ -222,16 +282,38 @@ async function loadRooms(location = '', checkIn = '', checkOut = '') {
         container.innerHTML = rooms.map(room => {
             const price = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.Price);
             const img = room.ImageURL || 'https://via.placeholder.com/300x200';
-            const address = room.Address ? `<p style="font-size:13px; color:#666; margin:5px 0"><i class="fas fa-map-marker-alt"></i> ${room.Address}</p>` : '';
             
-            // --- LOGIC MỚI: TẠO KHỐI REVIEW DƯỚI MÔ TẢ ---
+            // --- LOGIC MAP BUTTON (MỚI THÊM) ---
+            const lat = parseFloat(room.Latitude);
+            const lng = parseFloat(room.Longitude);
+            let mapButtonHtml = '';
+            
+            // Kiểm tra nếu toạ độ hợp lệ thì tạo nút bấm
+            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                // Sử dụng inline style để đảm bảo nút hiển thị đúng mà không cần sửa nhiều file CSS
+                mapButtonHtml = `
+                    <button class="btn-map-small" 
+                            style="border:none; background:none; color:#007bff; font-weight:bold; text-decoration:underline; cursor:pointer; margin-left:10px; padding:0;"
+                            onclick="showMap('${room.RoomName.replace(/'/g, "\\'")}', ${lat}, ${lng})">
+                        Xem trên bản đồ
+                    </button>
+                `;
+            }
+
+            const addressHtml = room.Address 
+                ? `<div class="room-location" style="display:flex; align-items:center; font-size:13px; color:#666; margin:5px 0;">
+                        <i class="fas fa-map-marker-alt" style="margin-right:5px; color:#007bff;"></i>
+                        <span>${room.Address}</span>
+                        ${mapButtonHtml} </div>` 
+                : '';
+            // ------------------------------------
+            
+            // --- LOGIC REVIEW ---
             const ratingVal = parseFloat(room.AvgRating || 0);
             const count = room.ReviewCount;
-            
             let reviewHtml = '';
             
             if (count > 0) {
-                // Tự động chọn từ ngữ dựa trên điểm số
                 let label = 'Trung bình';
                 if (ratingVal >= 9.5) label = 'Trên cả tuyệt vời';
                 else if (ratingVal >= 9.0) label = 'Xuất sắc';
@@ -248,12 +330,9 @@ async function loadRooms(location = '', checkIn = '', checkOut = '') {
                         </div>
                     </div>
                 `;
-
             } else {
-                // Nếu chưa có đánh giá, có thể để trống hoặc hiện dòng chữ nhỏ
                 reviewHtml = `<div class="review-summary" style="opacity:0.6"><span class="review-count-text" style="font-style:italic">Chưa có đánh giá</span></div>`;
             }
-            // ---------------------------------------------
 
             return `
                 <div class="room-card">
@@ -261,11 +340,11 @@ async function loadRooms(location = '', checkIn = '', checkOut = '') {
                     <div class="room-info">
                         <div class="room-cat" style="font-size:12px; font-weight:bold; color:#0071c2;">${room.CategoryName || 'STANDARD'}</div>
                         <div class="room-name" style="font-size:18px; font-weight:bold; margin:5px 0">${room.RoomName}</div>
-                        ${address}
+                        
+                        ${addressHtml}
+
                         <div class="room-desc" style="font-size:14px; color:#555;">${room.Description || ''}</div>
-                        
                         ${reviewHtml}
-                        
                         <div class="room-price" style="font-size:20px; color:#d4111e; font-weight:bold; text-align:right;">${price}</div>
                         <div style="margin-top:auto;">
                             <button class="btn-book" onclick="handleBooking(${room.RoomID})">Đặt Ngay</button>

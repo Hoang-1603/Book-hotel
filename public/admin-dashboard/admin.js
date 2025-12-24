@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Đăng xuất
     document.getElementById("logout-btn").onclick = () => {
         localStorage.clear();
-        window.location.href = "/public/auth/login.html";
+        window.location.href = "../auth/login.html";
     };
 });
 
@@ -251,10 +251,18 @@ async function loadRooms() {
             const price = new Intl.NumberFormat('vi-VN').format(room.Price);
             const img = room.ImageURL ? `<img src="${room.ImageURL}" class="table-img">` : '';
             
-            // Xử lý chuỗi để tránh lỗi JS
+            // Xử lý chuỗi để tránh lỗi JS khi chèn vào onclick
             const desc = room.Description ? room.Description.replace(/\n/g, "\\n").replace(/'/g, "\\'") : "";
-            // Thêm xử lý cho Address (nếu null thì để chuỗi rỗng)
             const addr = room.Address ? room.Address.replace(/'/g, "\\'") : "";
+            
+            // --- XỬ LÝ TOẠ ĐỘ ---
+            const latRaw = room.Latitude !== undefined ? room.Latitude : (room.latitude !== undefined ? room.latitude : "");
+            const lngRaw = room.Longitude !== undefined ? room.Longitude : (room.longitude !== undefined ? room.longitude : "");
+            
+            // Đảm bảo không bị null
+            const lat = latRaw || "";
+            const lng = lngRaw || "";
+            // --------------------
 
             tbody.innerHTML += `
                 <tr>
@@ -268,7 +276,7 @@ async function loadRooms() {
                     <td>${price} đ</td>
                     <td>${statusText}</td>
                     <td>
-                        <button onclick="openEditRoom(${room.RoomID}, '${room.RoomName}', ${room.CategoryID}, ${room.Price}, '${room.Status}', '${desc}', '${room.ImageURL}', '${addr}')" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                        <button onclick="openEditRoom(${room.RoomID}, '${room.RoomName}', ${room.CategoryID}, ${room.Price}, '${room.Status}', '${desc}', '${room.ImageURL}', '${addr}', '${lat}', '${lng}')" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteRoom(${room.RoomID})" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
@@ -291,8 +299,8 @@ document.getElementById("btn-add-room").onclick = () => {
     document.getElementById("modal-room").style.display = "flex";
 };
 
-// Cập nhật hàm này nhận thêm tham số address
-function openEditRoom(id, name, catId, price, status, desc, img, address) {
+// Cập nhật hàm này nhận thêm tham số lat, lng
+function openEditRoom(id, name, catId, price, status, desc, img, address, lat, lng) {
     document.getElementById("room-id").value = id;
     document.getElementById("room-name").value = name;
     document.getElementById("room-category").value = catId;
@@ -300,9 +308,12 @@ function openEditRoom(id, name, catId, price, status, desc, img, address) {
     document.getElementById("room-status").value = status;
     document.getElementById("room-description").value = desc;
     document.getElementById("room-image").value = img;
-    
-    // Điền địa chỉ cũ vào ô input
     document.getElementById("room-address").value = address || "";
+    
+    // --- ĐIỀN TOẠ ĐỘ VÀO FORM ---
+    document.getElementById("room-lat").value = lat || "";
+    document.getElementById("room-lng").value = lng || "";
+    // -----------------------------
 
     document.querySelector("#modal-room h3").innerText = "Cập nhật Phòng";
     document.getElementById("modal-room").style.display = "flex";
@@ -314,10 +325,23 @@ document.getElementById("room-form").onsubmit = async (e) => {
     const method = id ? "PUT" : "POST";
     const url = id ? `/rooms/${id}` : "/rooms";
 
+    // Lấy giá trị từ ô input
+    let latInput = document.getElementById("room-lat").value;
+    let lngInput = document.getElementById("room-lng").value;
+
+    // --- FIX QUAN TRỌNG: Đổi dấu phẩy thành dấu chấm ---
+    if(latInput) latInput = latInput.replace(',', '.');
+    if(lngInput) lngInput = lngInput.replace(',', '.');
+
     const data = {
         name: document.getElementById("room-name").value,
-        // Lấy giá trị Address từ form
-        address: document.getElementById("room-address").value, 
+        address: document.getElementById("room-address").value,
+        
+        // --- LẤY TOẠ ĐỘ GỬI LÊN SERVER ---
+        lat: latInput, // Gửi giá trị đã sửa
+        lng: lngInput, // Gửi giá trị đã sửa
+        // ---------------------------------
+        
         category_id: document.getElementById("room-category").value,
         price: document.getElementById("room-price").value,
         status: document.getElementById("room-status").value,
@@ -338,6 +362,71 @@ async function deleteRoom(id) {
         const res = await fetchWithAuth(`/rooms/${id}`, { method: "DELETE" });
         if(res.ok) { alert("Đã xóa!"); loadRooms(); }
         else alert("Lỗi xóa phòng!");
+    }
+}
+
+let pickerMap;
+let pickerMarker;
+
+function openMapPicker() {
+    const modal = document.getElementById('picker-map-modal');
+    modal.style.display = 'flex';
+
+    // 1. Khởi tạo Map nếu chưa có
+    if (!pickerMap) {
+        pickerMap = L.map('picker-map').setView([10.7769, 106.7009], 13); // Mặc định HCM
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(pickerMap);
+
+        // Sự kiện: Khi click vào bản đồ
+        pickerMap.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6); // Lấy 6 số thập phân
+            const lng = e.latlng.lng.toFixed(6);
+
+            // Điền vào ô input
+            document.getElementById('room-lat').value = lat;
+            document.getElementById('room-lng').value = lng;
+
+            // Di chuyển marker đến chỗ vừa bấm
+            if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+            pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+
+            // Đóng modal sau 0.5s cho mượt
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        });
+    }
+
+    // 2. Nếu đang sửa phòng (ô input đã có số), hãy hiển thị marker cũ
+    const currentLat = document.getElementById('room-lat').value;
+    const currentLng = document.getElementById('room-lng').value;
+
+    setTimeout(() => {
+        pickerMap.invalidateSize(); // Fix lỗi hiển thị map
+
+        if (currentLat && currentLng) {
+            // Nếu đã có toạ độ -> Zoom tới đó
+            const lat = parseFloat(currentLat);
+            const lng = parseFloat(currentLng);
+            pickerMap.setView([lat, lng], 16);
+            
+            if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+            pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+        } else {
+            // Nếu chưa có -> Reset về mặc định
+            if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+            pickerMap.setView([21.0285, 105.8542], 5); // Zoom xa nhìn cả nước VN
+        }
+    }, 200);
+}
+
+// Đóng map khi bấm ra ngoài vùng tối
+window.onclick = function(event) {
+    const modal = document.getElementById('picker-map-modal');
+    if (event.target == modal) {
+        modal.style.display = "none";
     }
 }
 
