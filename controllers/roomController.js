@@ -15,6 +15,7 @@ exports.searchRooms = (req, res) => {
         LEFT JOIN Categories C ON R.CategoryID = C.CategoryID
         LEFT JOIN Reviews Rv ON R.RoomID = Rv.RoomID
         WHERE R.Status = 'available'
+        AND R.IsDeleted = 0
         AND R.RoomID NOT IN (
             SELECT B.RoomID FROM Bookings B
             WHERE B.Status IN ('Confirmed', 'CheckedIn') AND 
@@ -45,6 +46,7 @@ exports.getAllRoomsAdmin = (req, res) => {
         SELECT Rooms.*, Categories.CategoryName 
         FROM Rooms 
         LEFT JOIN Categories ON Rooms.CategoryID = Categories.CategoryID
+        WHERE Rooms.IsDeleted = 0
     `;
     db.query(sql, (err, results) => {
         if(err) return res.status(500).json({ error: "Lỗi lấy phòng" });
@@ -96,8 +98,8 @@ exports.updateRoom = (req, res) => {
 };
 
 exports.deleteRoom = (req, res) => {
-    // Xóa cứng vì bảng Rooms gốc không có cột IsDeleted
-    const sql = "DELETE FROM Rooms WHERE RoomID = ?";
+    const sql = "UPDATE Rooms SET IsDeleted = 1 WHERE RoomID = ?";
+    
     db.query(sql, [req.params.id], (err) => {
         if(err) return res.status(500).json({ error: "Lỗi xóa phòng" });
         res.json({ message: "Đã xóa phòng thành công!" });
