@@ -21,6 +21,8 @@ CREATE TABLE Accounts (
     RoleID INT NOT NULL DEFAULT 2,      -- Mặc định là 2 (Guest) nếu code quên truyền vào
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Tự động lưu thời gian tạo
     IsDeleted TINYINT DEFAULT 0,
+    ResetPasswordToken VARCHAR(255) NULL,
+    ResetPasswordExpires VARCHAR(255) NULL,
     FOREIGN KEY (RoleID) REFERENCES Roles(RoleID)
 );
 
@@ -43,6 +45,8 @@ CREATE TABLE Rooms (
     ImageURL VARCHAR(500),          -- Link ảnh
     Address VARCHAR(255),	    -- Địa chỉ
     IsDeleted TINYINT DEFAULT 0,
+    Latitude DECIMAL(10, 8),
+    Longitude DECIMAL(11, 8);
     FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID) ON DELETE SET NULL
 );
 
